@@ -9,7 +9,7 @@ include Jabber
 
 require 'muc_helpers'
 
-$options = { :myjid => 'mucg@localhost', :mypass => 'test', :whoto => 'fish@muc.localhost' }
+$options = { :myjid => 'mucg@localhost/mucg', :mypass => 'test', :whoto => 'fish@muc.localhost' }
 
 # next we create a normal client
 puts "making client"

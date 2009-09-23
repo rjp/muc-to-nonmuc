@@ -11,6 +11,35 @@ include Jabber
 
 $filters = Hash.new { |h,k| h[k] = Array.new }
 
+def filter(message, filters)
+    denied = 0; allowed = 0; global_allow = 0; global_denied = 0
+    filters.each { |dir, regexp|
+        if message =~ Regexp.new(regexp) then
+            puts "+ #{message} =~ /#{regexp}/"
+            case dir
+                when 'allow'
+                    if regexp == '.*' then
+                        global_allow = 1
+                    else
+                        allowed = 1
+                    end
+                when 'deny'
+                    if regexp == '.*' then
+                        global_denied = 1
+                    else
+                        denied = 1
+                    end
+            end
+        end
+    }
+    puts "after filters, allowed=#{allowed}, global_allow=#{global_allow}, denied=#{denied}"
+    if (allowed == 1 and denied == 0) or (global_allow == 1 and denied == 0) then
+        return true
+    end
+
+    return false
+end
+
 def make_message_client(o)
     subscription_callback = lambda { |item,pres|
       name = pres.from
@@ -85,28 +114,7 @@ def make_message_client(o)
                         if bot.cache[item.jid] > 0 then
                             puts "#{item.jid} is online, sending"
                             p $filters
-                            denied = 0; allowed = 0; global_allow = 0; global_denied = 0
-                            $filters[item.jid.to_s].to_a.each { |dir, regexp|
-                                if msg.body =~ Regexp.new(regexp) then
-                                    puts "+ #{msg.body} =~ /#{regexp}/"
-                                    case dir
-                                        when 'allow'
-                                            if regexp == '.*' then
-                                                global_allow = 1
-                                            else
-                                                allowed = 1
-                                            end
-                                        when 'deny'
-                                            if regexp == '.*' then
-                                                global_denied = 1
-                                            else
-                                                denied = 1
-                                            end
-                                    end
-                                end
-                            }
-                            puts "after filters, allowed=#{allowed}, global_allow=#{global_allow}, denied=#{denied}"
-                            if (allowed == 1 and denied == 0) or (global_allow == 1 and denied == 0) then
+                            if filter(msg.body, $filters[item.jid.strip.to_s].to_a) then
                                 puts "sending to #{item.jid}"
                                 msg = Message.new(item.jid, "<#{msg.from.resource}> #{msg.body}")
                                 msg.type = :chat

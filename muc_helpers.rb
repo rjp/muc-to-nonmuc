@@ -9,6 +9,8 @@ require 'xmpp4r/muc/iq/mucadminitem'
 require 'xmpp4r/muc/x/muc'
 include Jabber
 
+$filters = Hash.new { |h,k| h[k] = Array.new }
+
 def make_message_client(o)
 	subscription_callback = lambda { |item,pres|
 	  name = pres.from
@@ -76,25 +78,65 @@ def make_message_client(o)
 
     bot.cl.add_message_callback do |msg|
         if msg.type == :groupchat then
-            puts "+ #{msg.from} #{msg.body}"
+            puts "G+ #{msg.from} #{msg.body}"
 			bot.roster.groups.each { |group|
 			    bot.roster.find_by_group(group).each { |item|
                     if [:from, :both].include?(item.subscription) then
                         if bot.cache[item.jid] > 0 then
                             puts "#{item.jid} is online, sending"
-                            bot.cl.send(Message.new(item.jid, "<#{msg.from}> #{msg.body}"))
+                            p $filters
+                            denied = 0; allowed = 0; global_allow = 0; global_denied = 0
+                            $filters[item.jid.to_s].to_a.each { |dir, regexp|
+                                if msg.body =~ Regexp.new(regexp) then
+                                    puts "+ #{msg.body} =~ /#{regexp}/"
+                                    case dir
+                                        when 'allow'
+                                            if regexp == '.*' then
+                                                global_allow = 1
+                                            else
+                                                allowed = 1
+                                            end
+                                        when 'deny'
+                                            if regexp == '.*' then
+                                                global_denied = 1
+                                            else
+                                                denied = 1
+                                            end
+                                    end
+                                end
+                            }
+                            puts "after filters, allowed=#{allowed}, global_allow=#{global_allow}, denied=#{denied}"
+                            if (allowed == 1 and denied == 0) or (global_allow == 1 and denied == 0) then
+                                puts "sending to #{item.jid}"
+                                msg = Message.new(item.jid, "<#{msg.from.resource}> #{msg.body}")
+                                msg.type = :chat
+                                bot.cl.send(msg)
+                            else
+                                puts "blocked send to #{item.jid}"
+                            end
                         end
                     end
 			    }
 			}
         elsif msg.type == :chat then
-            puts "+ #{msg.from} #{msg.body}"
+            puts "C+ #{msg.from} #{msg.body}"
+            if msg.body =~ /^filter(!?) (.+)/ then
+                key = ($1 == '!' ?  msg.from.to_s : msg.from.strip.to_s)
+                filter = $2
+                p [key, filter]
+                if filter =~ /^(deny|allow)=(.+)/i then
+                    puts "k=#{key} f=#{msg.from.to_s} r=#{filter}"
+                    # valid filter setting
+                    $filters[key].push [$1, $2]
+                end
+                p $filters[key]
+            end
         end
     end
 
     p = Presence.new.set_to(o[:whoto] + "/mucg").set_from(o[:myjid])
     x = MUC::XMUC.new
-    p.add(x) 
+    p.add(x)
     bot.cl.send(p)
 
     return bot

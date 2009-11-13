@@ -59,9 +59,10 @@ def make_message_client(o)
     bot = Jabber::Framework::Bot.new(o[:myjid], o[:mypass])
     class << bot
       attr_accessor :cache
+      attr_accessor :o
 
       def accept_subscription_from?(jid)
-        if jid == o[:whoto] then
+        if jid == @o[:whoto] then
             true
         else
             false
@@ -69,6 +70,7 @@ def make_message_client(o)
       end
     end
 
+    bot.o = o
     bot.cache = Hash.new(0)
     bot.set_presence(nil, "Waiting for socket tickling...")
 

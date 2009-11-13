@@ -85,14 +85,13 @@ def make_message_client(o)
     }
 
     bot.roster.add_update_callback { |olditem,item|
-        p olditem
-        p item
-      if [:from, :none].include?(item.subscription) && item.ask != :subscribe && item.jid == o[:whoto]
-        if $options[:debug] > 0 then
-            puts("Subscribing to #{item.jid}")
+        puts "S= #{item.subscription} old=#{olditem.inspect}, new=#{item.inspect} #{item.jid} <=> #{bot.o[:whoto]}"
+        if [:from, :none, :to].include?(item.subscription) && item.ask != :subscribe then # && item.jid == o[:whoto]
+	        if bot.o[:debug].to_i > 0 then
+	            puts("Subscribing to #{item.jid}")
+	        end
+            item.subscribe
         end
-        item.subscribe
-      end
     }
 
     bot.roster.add_subscription_callback(0, nil, &subscription_callback)

@@ -119,7 +119,7 @@ def make_message_client(o)
                             p $filters
                             if filter(msg.body, $filters[item.jid.strip.to_s].to_a) then
                                 puts "sending to #{item.jid}"
-                                msg = Message.new(item.jid, "<#{msg.from.resource}> #{msg.body}")
+                                msg = Message.new(item.jid, "<#{msg.from.node}/#{msg.from.resource}> #{msg.body}")
                                 msg.type = :chat
                                 bot.cl.send(msg)
                             else

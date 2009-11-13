@@ -14,8 +14,9 @@ $filters = Hash.new { |h,k| h[k] = Array.new }
 def filter(message, filters)
     denied = 0; allowed = 0; global_allow = 0; global_denied = 0
     filters.each { |dir, regexp|
+        puts "F? #{message} =~ /#{regexp}/"
         if message =~ Regexp.new(regexp) then
-            puts "+ #{message} =~ /#{regexp}/"
+            puts "F+ #{message} =~ /#{regexp}/"
             case dir
                 when 'allow'
                     if regexp == '.*' then
@@ -32,7 +33,7 @@ def filter(message, filters)
             end
         end
     }
-    puts "after filters, allowed=#{allowed}, global_allow=#{global_allow}, denied=#{denied}"
+    puts "F> allowed=#{allowed}, global_allow=#{global_allow}, denied=#{denied}"
     if (allowed == 1 and denied == 0) or (global_allow == 1 and denied == 0) then
         return true
     end

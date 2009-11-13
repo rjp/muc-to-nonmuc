@@ -137,8 +137,11 @@ def make_message_client(o)
                 p [key, filter]
                 if filter =~ /^(deny|allow)=(.+)/i then
                     puts "k=#{key} f=#{msg.from.to_s} r=#{filter}"
+                    # because rjp keeps forgetting that "filter allow=/fish/" doesn't work
+                    access, regexp = $1, $2
+                    regexp.gsub!(%r{^/(.*)/$}, '\1')
                     # valid filter setting
-                    $filters[key].push [$1, $2]
+                    $filters[key].push [access, regexp]
                 end
                 p $filters[key]
             end
